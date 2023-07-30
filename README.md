@@ -1,380 +1,319 @@
-For this project, we will use HTML, CSS, and JavaScript for the frontend, and Node.js with Express for the backend.
+const fetchMovieData = async (movieTitle) => {
+  const response = await fetch(`https://www.omdbapi.com/?t=${movieTitle}`);
+  const data = await response.json();
+  return data;
+};
 
-Home Page (index.html)
-html
-<!DOCTYPE html>
-<html>
-<head>
-    <title>IMDB Clone</title>
-</head>
-<body>
-    <h1>IMDB Clone</h1>
-    <input type="text" id="searchInput" placeholder="Search movies...">
-    <ul id="searchResults"></ul>
-</body>
-</html>
-Frontend JavaScript (index.js)
-javascript
-const searchInput = document.getElementById("searchInput");
-const searchResults = document.getElementById("searchResults");
+const HomePage = () => {
+  const [movieTitle, setMovieTitle] = useState("");
+  const [movieData, setMovieData] = useState(null);
 
-searchInput.addEventListener("input", () => {
-    const searchTerm = searchInput.value;
-    // Call the API with searchTerm and get search results
-    // Display the search results in the searchResults list
-});
+  const handleChange = (event) => {
+    setMovieTitle(event.target.value);
+  };
 
-searchResults.addEventListener("click", (event) => {
-    if (event.target.className === "favorite-button") {
-        const movieId = event.target.dataset.movieId;
-        // Add the movie to the favorite list (using API or local storage)
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    const data = await fetchMovieData(movieTitle);
+    setMovieData(data);
+  };
+
+  return (
+    <div>
+      <h1>Home Page</h1>
+      <input
+        type="text"
+        placeholder="Enter movie title"
+        value={movieTitle}
+        onChange={handleChange}
+      />
+      <button onClick={handleSubmit}>Search</button>
+      {movieData && (
+        <div>
+          <h2>{movieData.Title}</h2>
+          <img src={movieData.Poster} alt={movieData.Title} />
+          <p>{movieData.Plot}</p>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const MoviePage = () => {
+  const [movieData, setMovieData] = useState(null);
+
+  const handleFavorite = () => {
+    const favorites = JSON.parse(localStorage.getItem("favorites"));
+    if (favorites === null) {
+      favorites = [];
     }
-});
-Movie Page (movie.html)
-html
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Movie Details</title>
-</head>
-<body>
-    <h1 id="movieTitle"></h1>
-    <img id="movieImage" src="" alt="Movie Poster">
-    <p id="moviePlot"></p>
-</body>
-</html>
-Frontend JavaScript (movie.js)
-javascript
-Copy code
-const movieTitle = document.getElementById("movieTitle");
-const movieImage = document.getElementById("movieImage");
-const moviePlot = document.getElementById("moviePlot");
-
-// Get the movieId from the URL (you can use URLSearchParams or other techniques)
-const movieId = getMovieIdFromURL();
-
-// Call the API with movieId and get the movie details
-// Display the movie details in the respective elements
-My Favourite Movies Page (favorites.html)
-html
-Copy code
-<!DOCTYPE html>
-<html>
-<head>
-    <title>My Favourite Movies</title>
-</head>
-<body>
-    <h1>My Favourite Movies</h1>
-    <ul id="favoriteMovies"></ul>
-</body>
-</html>
-Frontend JavaScript (favorites.js)
-javascript
-const favoriteMoviesList = document.getElementById("favoriteMovies");
-
-// Fetch the favorite movies from local storage or API
-// Display the list of favorite movies in the favoriteMoviesList
-
-favoriteMoviesList.addEventListener("click", (event) => {
-    if (event.target.className === "remove-button") {
-        const movieId = event.target.dataset.movieId;
-        // Remove the movie from the favorite list (using API or local storage)
+    if (favorites.indexOf(movieData.Title) === -1) {
+      favorites.push(movieData.Title);
+      localStorage.setItem("favorites", JSON.stringify(favorites));
     }
-});
-Here's a simplified example of how the backend might look:
-// server.js
-const express = require('express');
-const app = express();
-const port = 3000;
+  };
 
-// Set up routes to handle API requests
-app.get('/api/search/:query', (req, res) => {
-    const searchTerm = req.params.query;
-    // Call the external API (e.g., OMDB API) to get search results
-    // Return the search results as JSON
-});
+  return (
+    <div>
+      <h1>Movie Page</h1>
+      <h2>{movieData.Title}</h2>
+      <img src={movieData.Poster} alt={movieData.Title} />
+      <p>{movieData.Plot}</p>
+      <button onClick={handleFavorite}>Add to Favorites</button>
+    </div>
+  );
+};
 
-app.get('/api/movies/:movieId', (req, res) => {
-    const movieId = req.params.movieId;
-    // Call the external API (e.g., OMDB API) to get movie details
-    // Return the movie details as JSON
-});
+const MyFavoriteMoviesPage = () => {
+  const favorites = JSON.parse(localStorage.getItem("favorites"));
+  if (favorites === null) {
+    favorites = [];
+  }
 
-// Set up more routes for adding/removing favorite movies and retrieving the favorites list
-
-app.listen(port, () => console.log(`Server is running on port ${port}`));
-// Assuming you have a favoritesController.js file to handle favorites operations
-
-// Add a movie to favorites
-app.post('/api/favorites', favoritesController.addToFavorites);
-
-// Remove a movie from favorites
-app.delete('/api/favorites/:movieId', favoritesController.removeFromFavorites);
-Backend - favoritesController.js
-// Assuming you have implemented a data store or database for storing favorite movies
-
-const favorites = []; // This is just a simple in-memory array; in a real app, use a database
-
-function addToFavorites(req, res) {
-    const movieId = req.body.movieId;
-    // Check if the movie is already in the favorites list
-    if (!favorites.some((movie) => movie.id === movieId)) {
-        // Fetch the movie details from the API using movieId and add it to favorites
-        const movieDetails = fetchMovieDetailsFromAPI(movieId);
-        favorites.push(movieDetails);
-    }
-    res.status(200).json({ message: 'Movie added to favorites successfully' });
-}
-
-function removeFromFavorites(req, res) {
-    const movieId = req.params.movieId;
-    const index = favorites.findIndex((movie) => movie.id === movieId);
-    if (index !== -1) {
-        favorites.splice(index, 1);
-    }
-    res.status(200).json({ message: 'Movie removed from favorites successfully' });
-}
-
-module.exports = { addToFavorites, removeFromFavorites };
-Frontend JavaScript - Adding to Favorites
-// Inside the searchResults event listener
-searchResults.addEventListener("click", (event) => {
-    if (event.target.className === "favorite-button") {
-        const movieId = event.target.dataset.movieId;
-        // Call the API to add the movie to favorites
-        fetch('/api/favorites', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ movieId })
-        })
-        .then((response) => response.json())
-        .then((data) => {
-            console.log(data.message); // Show success message to the user
-        })
-        .catch((error) => {
-            console.error('Error adding movie to favorites:', error);
-        });
-    }
-});
-Frontend JavaScript - Removing from Favorites
-// Inside the favoriteMoviesList event listener
-favoriteMoviesList.addEventListener("click", (event) => {
-    if (event.target.className === "remove-button") {
-        const movieId = event.target.dataset.movieId;
-        // Call the API to remove the movie from favorites
-        fetch(`/api/favorites/${movieId}`, {
-            method: 'DELETE',
-        })
-        .then((response) => response.json())
-        .then((data) => {
-            console.log(data.message); // Show success message to the user
-            // Optionally, remove the movie from the frontend list as well
-        })
-        .catch((error) => {
-            console.error('Error removing movie from favorites:', error);
-        });
-    }
-});
-Fetching and Displaying Search Results
-// Frontend JavaScript (index.js)
-const searchInput = document.getElementById("searchInput");
-const searchResults = document.getElementById("searchResults");
-
-searchInput.addEventListener("input", () => {
-    const searchTerm = searchInput.value;
-    fetch(`/api/search/${searchTerm}`)
-        .then((response) => response.json())
-        .then((data) => {
-            searchResults.innerHTML = ""; // Clear previous search results
-            data.forEach((movie) => {
-                const li = document.createElement("li");
-                li.innerHTML = `
-                    <div>
-                        <img src="${movie.poster}" alt="${movie.title} Poster">
-                    </div>
-                    <div>
-                        <h3>${movie.title}</h3>
-                        <p>${movie.year}</p>
-                        <button class="favorite-button" data-movie-id="${movie.id}">Add to Favorites</button>
-                    </div>
-                `;
-                searchResults.appendChild(li);
-            });
-        })
-        .catch((error) => {
-            console.error('Error fetching search results:', error);
-        });
-});
-Fetching and Displaying Movie Details
-// Frontend JavaScript (movie.js)
-const movieTitle = document.getElementById("movieTitle");
-const movieImage = document.getElementById("movieImage");
-const moviePlot = document.getElementById("moviePlot");
-
-// Get the movieId from the URL
-const movieId = getMovieIdFromURL();
-
-fetch(`/api/movies/${movieId}`)
-    .then((response) => response.json())
-    .then((data) => {
-        movieTitle.textContent = data.title;
-        movieImage.src = data.poster;
-        movieImage.alt = data.title + " Poster";
-        moviePlot.textContent = data.plot;
-    })
-    .catch((error) => {
-        console.error('Error fetching movie details:', error);
-    });
-Backend - Fetch Movie Details
-// Assuming you have implemented a function to fetch movie details from an external API
-// For example, using the "axios" library
-
-const axios = require('axios');
-
-async function fetchMovieDetails(movieId) {
-    try {
-        const response = await axios.get(`https://api.example.com/movies/${movieId}`);
-        return response.data;
-    } catch (error) {
-        console.error('Error fetching movie details:', error);
-        throw new Error('Failed to fetch movie details');
-    }
-}
-
-// In your moviesController.js file
-async function getMovieDetails(req, res) {
-    const movieId = req.params.movieId;
-    try {
-        const movieDetails = await fetchMovieDetails(movieId);
-        res.json(movieDetails);
-    } catch (error) {
-        res.status(500).json({ error: 'Failed to fetch movie details' });
-    }
-}
-
-module.exports = { getMovieDetails };
-Below is a sample CSS code to style the IMDB clone project
-/* styles.css */
+  return (
+    <div>
+      <h1>My Favorite Movies</h1>
+      {favorites.map((movieTitle) => (
+        <div key={movieTitle}>
+          <h2>{movieTitle}</h2>
+          <button onClick={() => {
+            const newFavorites = favorites.filter((movie) => movie !== movieTitle);
+            localStorage.setItem("favorites", JSON.stringify(newFavorites));
+          }}>
+            Remove from Favorites
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+};
 
 body {
-  font-family: Arial, sans-serif;
+  font-family: sans-serif;
   margin: 0;
   padding: 0;
-  background-color: #f2f2f2;
 }
 
 h1 {
-  text-align: center;
-  margin-top: 20px;
+  font-size: 24px;
+  margin: 0 0 15px 0;
 }
 
-/* Home Page */
+h2 {
+  font-size: 18px;
+  margin: 0 0 10px 0;
+}
 
-#searchInput {
-  width: 100%;
-  padding: 10px;
+p {
   font-size: 16px;
+  margin: 0 0 15px 0;
+}
+
+a {
+  color: #000;
+  text-decoration: none;
+}
+
+.container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.movie-card {
+  margin: 0 0 20px 0;
   border: 1px solid #ccc;
+  padding: 20px;
 }
 
-#searchResults {
-  list-style: none;
-  padding: 0;
+.movie-card img {
+  width: 100%;
 }
 
-#searchResults li {
-  display: flex;
-  align-items: center;
-  margin: 10px;
-  padding: 10px;
-  background-color: #fff;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+.movie-card h2 {
+  margin: 0 0 10px 0;
 }
 
-#searchResults li img {
-  width: 80px;
-  height: 120px;
-  margin-right: 20px;
+.movie-card p {
+  margin: 0 0 15px 0;
 }
 
-.favorite-button {
-  padding: 8px 16px;
-  background-color: #007bff;
+.movie-card button {
+  background-color: #000;
   color: #fff;
+  padding: 10px 20px;
   border: none;
   cursor: pointer;
 }
 
-.favorite-button:hover {
-  background-color: #0056b3;
-}
+import React, { useState } from "react";
 
-/* Movie Page */
+const SearchBar = ({ value }) => {
+  const [searchTerm, setSearchTerm] = useState("");
 
-#movieImage {
-  width: 200px;
-  height: 300px;
-  margin: 20px auto;
-  display: block;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-}
+  const handleChange = (event) => {
+    setSearchTerm(event.target.value);
+  };
 
-#movieTitle {
-  text-align: center;
-}
+  const handleSubmit = () => {
+    // TODO: Search for movies by title
+  };
 
-#moviePlot {
-  max-width: 800px;
-  margin: 20px auto;
-}
+  return (
+    <div>
+      <input
+        type="text"
+        placeholder="Search movies"
+        value={searchTerm}
+        onChange={handleChange}
+      />
+      <button onClick={handleSubmit}>Search</button>
+    </div>
+  );
+};
 
-/* My Favourite Movies Page */
+export default SearchBar;
 
-#favoriteMovies {
-  list-style: none;
-  padding: 0;
-}
+import React from "react";
+import SearchBar from "./search";
 
-#favoriteMovies li {
-  display: flex;
-  align-items: center;
-  margin: 10px;
-  padding: 10px;
-  background-color: #fff;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-}
+const HomePage = () => {
+  return (
+    <div>
+      <h1>Home Page</h1>
+      <SearchBar />
+    </div>
+  );
+};
 
-#favoriteMovies li img {
-  width: 60px;
-  height: 90px;
-  margin-right: 20px;
-}
+export default HomePage;
 
-.remove-button {
-  padding: 8px 16px;
-  background-color: #dc3545;
-  color: #fff;
-  border: none;
-  cursor: pointer;
-}
+import React, { useState } from "react";
 
-.remove-button:hover {
-  background-color: #c82333;
-}
+const Rating = ({ rating }) => {
+  const [selectedRating, setSelectedRating] = useState(1);
 
-/* Responsive styles */
+  const handleChange = (event) => {
+    setSelectedRating(event.target.value);
+  };
 
-@media (max-width: 768px) {
-  #searchResults li {
-    flex-direction: column;
-  }
+  return (
+    <div>
+      <h2>Rate this movie</h2>
+      <input
+        type="radio"
+        value="1"
+        name="rating"
+        onChange={handleChange}
+        checked={selectedRating === 1}
+      />
+      <label htmlFor="rating-1">1 star</label>
+      <input
+        type="radio"
+        value="2"
+        name="rating"
+        onChange={handleChange}
+        checked={selectedRating === 2}
+      />
+      <label htmlFor="rating-2">2 stars</label>
+      <input
+        type="radio"
+        value="3"
+        name="rating"
+        onChange={handleChange}
+        checked={selectedRating === 3}
+      />
+      <label htmlFor="rating-3">3 stars</label>
+      <input
+        type="radio"
+        value="4"
+        name="rating"
+        onChange={handleChange}
+        checked={selectedRating === 4}
+      />
+      <label htmlFor="rating-4">4 stars</label>
+      <input
+        type="radio"
+        value="5"
+        name="rating"
+        onChange={handleChange}
+        checked={selectedRating === 5}
+      />
+      <label htmlFor="rating-5">5 stars</label>
+    </div>
+  );
+};
 
-  #searchResults li img,
-  #favoriteMovies li img {
-    width: 100px;
-    height: 150px;
-    margin: 10px 0;
-  }
-}
+export default Rating;
+
+import React from "react";
+import Rating from "./rating";
+
+const MoviePage = () => {
+  const [rating, setRating] = useState(1);
+
+  return (
+    <div>
+      <h1>Movie Page</h1>
+      <Rating rating={rating} />
+    </div>
+  );
+};
+
+export default MoviePage;
+
+import React, { useState } from "react";
+
+const Watchlist = ({ movies }) => {
+  const [watchlist, setWatchlist] = useState([]);
+
+  const handleAddMovie = (movie) => {
+    setWatchlist((prevWatchlist) => {
+      return [...prevWatchlist, movie];
+    });
+  };
+
+  const handleRemoveMovie = (movie) => {
+    setWatchlist((prevWatchlist) => {
+      return prevWatchlist.filter((m) => m !== movie);
+    });
+  };
+
+  return (
+    <div>
+      <h2>My Watchlist</h2>
+      <ul>
+        {movies.map((movie) => (
+          <li key={movie}>
+            {movie}
+            <button onClick={() => handleRemoveMovie(movie)}>
+              Remove
+            </button>
+          </li>
+        ))}
+      </ul>
+      <button onClick={() => handleAddMovie("New Movie")}>
+        Add Movie
+      </button>
+    </div>
+  );
+};
+
+export default Watchlist;
+
+import React from "react";
+import Watchlist from "./watchlist";
+
+const MoviePage = () => {
+  const [movies, setMovies] = useState([]);
+
+  return (
+    <div>
+      <h1>Movie Page</h1>
+      <Watchlist movies={movies} />
+    </div>
+  );
+};
+
+export default MoviePage;
+
