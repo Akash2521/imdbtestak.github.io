@@ -1,319 +1,244 @@
-const fetchMovieData = async (movieTitle) => {
-  const response = await fetch(`https://www.omdbapi.com/?t=${movieTitle}`);
+const apiKey = 'YOUR_OMDB_API_KEY';
+const searchInput = document.getElementById('search-input');
+const searchResultsContainer = document.getElementById('search-results-container');
+
+// Function to fetch movie data from the API based on the user's search query
+async function fetchMovies(searchQuery) {
+  const response = await fetch(`https://www.omdbapi.com/?apikey=${apiKey}&s=${searchQuery}`);
+  const data = await response.json();
+  return data.Search;
+}
+
+// Function to render search results
+function renderSearchResults(movies) {
+  searchResultsContainer.innerHTML = '';
+  movies.forEach((movie) => {
+    const movieCard = document.createElement('div');
+    movieCard.classList.add('movie-card');
+    movieCard.innerHTML = `
+      <img src="${movie.Poster}" alt="${movie.Title}">
+      <h3>${movie.Title}</h3>
+      <button class="favorite-btn">Add to Favorites</button>
+    `;
+
+    const favoriteBtn = movieCard.querySelector('.favorite-btn');
+    favoriteBtn.addEventListener('click', () => addToFavorites(movie));
+
+    searchResultsContainer.appendChild(movieCard);
+  });
+}
+
+// Event listener for the search input
+searchInput.addEventListener('input', async (event) => {
+  const searchQuery = event.target.value;
+  if (searchQuery.length >= 3) {
+    const movies = await fetchMovies(searchQuery);
+    renderSearchResults(movies);
+  }
+});
+
+const favoritesList = [];
+
+// Function to add a movie to the favorites list
+function addToFavorites(movie) {
+  if (!favoritesList.some((favMovie) => favMovie.imdbID === movie.imdbID)) {
+    favoritesList.push(movie);
+  }
+}
+
+// Function to navigate to the movie page
+function navigateToMoviePage(movieID) {
+  // You can use the browser's History API to manage navigation without page reloads
+  window.location.href = `movie.html?movieID=${movieID}`;
+}
+
+const favoritesContainer = document.getElementById('favorites-container');
+
+// Function to render favorite movies
+function renderFavorites() {
+  favoritesContainer.innerHTML = '';
+  favoritesList.forEach((movie) => {
+    const favoriteMovieCard = document.createElement('div');
+    favoriteMovieCard.classList.add('favorite-movie-card');
+    favoriteMovieCard.innerHTML = `
+      <img src="${movie.Poster}" alt="${movie.Title}">
+      <h3>${movie.Title}</h3>
+      <button class="remove-btn">Remove from Favorites</button>
+    `;
+
+    const removeBtn = favoriteMovieCard.querySelector('.remove-btn');
+    removeBtn.addEventListener('click', () => removeFromFavorites(movie));
+
+    favoritesContainer.appendChild(favoriteMovieCard);
+  });
+}
+
+// Function to remove a movie from the favorites list
+function removeFromFavorites(movie) {
+  favoritesList = favoritesList.filter((favMovie) => favMovie.imdbID !== movie.imdbID);
+  renderFavorites();
+}
+
+// Call renderFavorites() to display the initial list of favorite movies
+renderFavorites();
+
+// Save favoritesList to Local Storage
+function saveFavoritesToLocalStorage() {
+  localStorage.setItem('favoritesList', JSON.stringify(favoritesList));
+}
+
+// Load favoritesList from Local Storage
+function loadFavoritesFromLocalStorage() {
+  const favorites = localStorage.getItem('favoritesList');
+  if (favorites) {
+    favoritesList = JSON.parse(favorites);
+    renderFavorites();
+  }
+}
+
+// Call loadFavoritesFromLocalStorage() when the page loads to load the favorites from Local Storage
+window.addEventListener('load', loadFavoritesFromLocalStorage);
+
+// Save favoritesList to Local Storage whenever it is updated
+window.addEventListener('beforeunload', saveFavoritesToLocalStorage);
+
+// Function to fetch movie details by ID
+async function fetchMovieDetails(movieID) {
+  const response = await fetch(`https://www.omdbapi.com/?apikey=${apiKey}&i=${movieID}`);
   const data = await response.json();
   return data;
-};
+}
 
-const HomePage = () => {
-  const [movieTitle, setMovieTitle] = useState("");
-  const [movieData, setMovieData] = useState(null);
+// Function to render movie details on the movie page
+async function renderMovieDetails() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const movieID = urlParams.get('movieID');
+  const movieDetails = await fetchMovieDetails(movieID);
 
-  const handleChange = (event) => {
-    setMovieTitle(event.target.value);
-  };
+  // Use the movieDetails object to display the information on the movie page
+}
 
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-    const data = await fetchMovieData(movieTitle);
-    setMovieData(data);
-  };
+<!-- Home Page -->
+<div id="search-container">
+  <input type="text" id="search-input" placeholder="Search for a movie...">
+</div>
+<div id="search-results-container"></div>
 
-  return (
-    <div>
-      <h1>Home Page</h1>
-      <input
-        type="text"
-        placeholder="Enter movie title"
-        value={movieTitle}
-        onChange={handleChange}
-      />
-      <button onClick={handleSubmit}>Search</button>
-      {movieData && (
-        <div>
-          <h2>{movieData.Title}</h2>
-          <img src={movieData.Poster} alt={movieData.Title} />
-          <p>{movieData.Plot}</p>
-        </div>
-      )}
-    </div>
-  );
-};
+<!-- My Favorite Movies Page -->
+<div id="favorites-container"></div>
 
-const MoviePage = () => {
-  const [movieData, setMovieData] = useState(null);
+function renderSearchResults(movies) {
+  searchResultsContainer.innerHTML = '';
+  movies.forEach((movie) => {
+    const movieCard = document.createElement('div');
+    movieCard.classList.add('movie-card');
+    movieCard.innerHTML = `
+      <img src="${movie.Poster}" alt="${movie.Title}">
+      <h3>${movie.Title}</h3>
+      <button class="favorite-btn">Add to Favorites</button>
+    `;
 
-  const handleFavorite = () => {
-    const favorites = JSON.parse(localStorage.getItem("favorites"));
-    if (favorites === null) {
-      favorites = [];
-    }
-    if (favorites.indexOf(movieData.Title) === -1) {
-      favorites.push(movieData.Title);
-      localStorage.setItem("favorites", JSON.stringify(favorites));
-    }
-  };
+    const favoriteBtn = movieCard.querySelector('.favorite-btn');
+    favoriteBtn.addEventListener('click', () => {
+      addToFavorites(movie);
+      navigateToMoviePage(movie.imdbID); // Navigate to the movie page when clicking "Add to Favorites"
+    });
 
-  return (
-    <div>
-      <h1>Movie Page</h1>
-      <h2>{movieData.Title}</h2>
-      <img src={movieData.Poster} alt={movieData.Title} />
-      <p>{movieData.Plot}</p>
-      <button onClick={handleFavorite}>Add to Favorites</button>
-    </div>
-  );
-};
+    searchResultsContainer.appendChild(movieCard);
+  });
+}
 
-const MyFavoriteMoviesPage = () => {
-  const favorites = JSON.parse(localStorage.getItem("favorites"));
-  if (favorites === null) {
-    favorites = [];
-  }
+<!-- Movie Page -->
+<div id="movie-page-container">
+  <!-- Movie details will be rendered here -->
+</div>
+<div>
+  <a href="index.html">Back to Home</a>
+</div>
 
-  return (
-    <div>
-      <h1>My Favorite Movies</h1>
-      {favorites.map((movieTitle) => (
-        <div key={movieTitle}>
-          <h2>{movieTitle}</h2>
-          <button onClick={() => {
-            const newFavorites = favorites.filter((movie) => movie !== movieTitle);
-            localStorage.setItem("favorites", JSON.stringify(newFavorites));
-          }}>
-            Remove from Favorites
-          </button>
-        </div>
-      ))}
-    </div>
-  );
-};
+<!DOCTYPE html>
+<html>
+<head>
+  <!-- Link your CSS file -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Your HTML code here -->
+</body>
+</html>
 
+/* General styles */
 body {
-  font-family: sans-serif;
-  margin: 0;
-  padding: 0;
-}
-
-h1 {
-  font-size: 24px;
-  margin: 0 0 15px 0;
-}
-
-h2 {
-  font-size: 18px;
-  margin: 0 0 10px 0;
-}
-
-p {
-  font-size: 16px;
-  margin: 0 0 15px 0;
-}
-
-a {
-  color: #000;
-  text-decoration: none;
+  font-family: Arial, sans-serif;
 }
 
 .container {
-  width: 100%;
   max-width: 1200px;
   margin: 0 auto;
-}
-
-.movie-card {
-  margin: 0 0 20px 0;
-  border: 1px solid #ccc;
   padding: 20px;
 }
 
-.movie-card img {
+/* Home Page styles */
+#search-container {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+#search-input {
+  padding: 10px;
+  font-size: 16px;
   width: 100%;
+  max-width: 500px;
 }
 
-.movie-card h2 {
-  margin: 0 0 10px 0;
+#search-results-container {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
 }
 
-.movie-card p {
-  margin: 0 0 15px 0;
+.movie-card {
+  width: 200px;
+  margin: 10px;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  text-align: center;
 }
 
-.movie-card button {
-  background-color: #000;
-  color: #fff;
-  padding: 10px 20px;
-  border: none;
-  cursor: pointer;
+.movie-card img {
+  max-width: 100%;
+  height: auto;
 }
 
-import React, { useState } from "react";
+/* Movie Page styles */
+#movie-page-container {
+  text-align: center;
+}
 
-const SearchBar = ({ value }) => {
-  const [searchTerm, setSearchTerm] = useState("");
+#movie-page-container img {
+  max-width: 300px;
+  height: auto;
+  margin-bottom: 10px;
+}
 
-  const handleChange = (event) => {
-    setSearchTerm(event.target.value);
-  };
+/* My Favorite Movies Page styles */
+#favorites-container {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+}
 
-  const handleSubmit = () => {
-    // TODO: Search for movies by title
-  };
+.favorite-movie-card {
+  width: 200px;
+  margin: 10px;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  text-align: center;
+}
 
-  return (
-    <div>
-      <input
-        type="text"
-        placeholder="Search movies"
-        value={searchTerm}
-        onChange={handleChange}
-      />
-      <button onClick={handleSubmit}>Search</button>
-    </div>
-  );
-};
-
-export default SearchBar;
-
-import React from "react";
-import SearchBar from "./search";
-
-const HomePage = () => {
-  return (
-    <div>
-      <h1>Home Page</h1>
-      <SearchBar />
-    </div>
-  );
-};
-
-export default HomePage;
-
-import React, { useState } from "react";
-
-const Rating = ({ rating }) => {
-  const [selectedRating, setSelectedRating] = useState(1);
-
-  const handleChange = (event) => {
-    setSelectedRating(event.target.value);
-  };
-
-  return (
-    <div>
-      <h2>Rate this movie</h2>
-      <input
-        type="radio"
-        value="1"
-        name="rating"
-        onChange={handleChange}
-        checked={selectedRating === 1}
-      />
-      <label htmlFor="rating-1">1 star</label>
-      <input
-        type="radio"
-        value="2"
-        name="rating"
-        onChange={handleChange}
-        checked={selectedRating === 2}
-      />
-      <label htmlFor="rating-2">2 stars</label>
-      <input
-        type="radio"
-        value="3"
-        name="rating"
-        onChange={handleChange}
-        checked={selectedRating === 3}
-      />
-      <label htmlFor="rating-3">3 stars</label>
-      <input
-        type="radio"
-        value="4"
-        name="rating"
-        onChange={handleChange}
-        checked={selectedRating === 4}
-      />
-      <label htmlFor="rating-4">4 stars</label>
-      <input
-        type="radio"
-        value="5"
-        name="rating"
-        onChange={handleChange}
-        checked={selectedRating === 5}
-      />
-      <label htmlFor="rating-5">5 stars</label>
-    </div>
-  );
-};
-
-export default Rating;
-
-import React from "react";
-import Rating from "./rating";
-
-const MoviePage = () => {
-  const [rating, setRating] = useState(1);
-
-  return (
-    <div>
-      <h1>Movie Page</h1>
-      <Rating rating={rating} />
-    </div>
-  );
-};
-
-export default MoviePage;
-
-import React, { useState } from "react";
-
-const Watchlist = ({ movies }) => {
-  const [watchlist, setWatchlist] = useState([]);
-
-  const handleAddMovie = (movie) => {
-    setWatchlist((prevWatchlist) => {
-      return [...prevWatchlist, movie];
-    });
-  };
-
-  const handleRemoveMovie = (movie) => {
-    setWatchlist((prevWatchlist) => {
-      return prevWatchlist.filter((m) => m !== movie);
-    });
-  };
-
-  return (
-    <div>
-      <h2>My Watchlist</h2>
-      <ul>
-        {movies.map((movie) => (
-          <li key={movie}>
-            {movie}
-            <button onClick={() => handleRemoveMovie(movie)}>
-              Remove
-            </button>
-          </li>
-        ))}
-      </ul>
-      <button onClick={() => handleAddMovie("New Movie")}>
-        Add Movie
-      </button>
-    </div>
-  );
-};
-
-export default Watchlist;
-
-import React from "react";
-import Watchlist from "./watchlist";
-
-const MoviePage = () => {
-  const [movies, setMovies] = useState([]);
-
-  return (
-    <div>
-      <h1>Movie Page</h1>
-      <Watchlist movies={movies} />
-    </div>
-  );
-};
-
-export default MoviePage;
-
+.favorite-movie-card img {
+  max-width: 100%;
+  height: auto;
+}
